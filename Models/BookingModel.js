@@ -217,11 +217,10 @@ bookingSchema.pre('save', async function(next) {
 
 // Validate travel dates
 bookingSchema.pre('save', function(next) {
-  if (this.travelDetails.startDate >= this.travelDetails.endDate) {
-    next(new Error('End date must be after start date'));
-  }
-  if (this.travelDetails.startDate < new Date()) {
-    next(new Error('Travel start date cannot be in the past'));
+  if (this.travelDetails?.startDate && this.travelDetails?.endDate) {
+    if (this.travelDetails.startDate >= this.travelDetails.endDate) {
+      return next(new Error('End date must be after start date'));
+    }
   }
   next();
 });
