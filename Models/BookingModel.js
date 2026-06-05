@@ -233,7 +233,6 @@ bookingSchema.pre('save', function(next) {
 });
 
 // Indexing
-bookingSchema.index({ bookingId: 1 });
 bookingSchema.index({ user: 1 });
 bookingSchema.index({ package: 1 });
 bookingSchema.index({ status: 1 });

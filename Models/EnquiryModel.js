@@ -111,7 +111,6 @@ enquirySchema.pre('save', function(next) {
 });
 
 // Indexing
-enquirySchema.index({ enquiryId: 1 });
 enquirySchema.index({ email: 1 });
 enquirySchema.index({ status: 1 });
 enquirySchema.index({ category: 1 });
