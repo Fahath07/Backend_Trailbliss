@@ -2,7 +2,7 @@ const Enquiry = require('../Models/EnquiryModel');
 const { Resend } = require('resend');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const ADMIN_EMAIL = 'fahathalsalam07@gmail.com';
+const ADMIN_EMAIL = 'fahathalsalam@gmail.com';
 
 const createEnquiry = async (req, res) => {
   try {
