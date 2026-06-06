@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { SignUpUser, LoginUser, LogoutUser, GetProfile, UpdateProfile, GetAllUsers, DeleteUser, SendOTP, VerifyOTP, ResetPassword } = require('../Controllers/UserController');
+const { SignUpUser, LoginUser, LogoutUser, GetProfile, UpdateProfile, GetAllUsers, DeleteUser, SendOTP, VerifyOTP, ResetPassword, GoogleCallback } = require('../Controllers/UserController');
 const { protect, admin } = require('../Middleware/authMiddleware');
 
+router.post('/google', GoogleCallback);
 router.post('/signup', SignUpUser);
 router.post('/login', LoginUser);
 router.post('/logout', LogoutUser);

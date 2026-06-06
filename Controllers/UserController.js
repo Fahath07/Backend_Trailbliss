@@ -181,4 +181,43 @@ const ResetPassword = async (req, res) => {
     }
 };
 
-module.exports = { SignUpUser, LoginUser, LogoutUser, GetProfile, UpdateProfile, GetAllUsers, DeleteUser, SendOTP, VerifyOTP, ResetPassword };
+const GoogleCallback = async (req, res) => {
+    try {
+        const { googleId, email, firstname, lastname, avatar } = req.body;
+
+        if (!googleId || !email) return res.status(400).json({ message: 'Invalid Google data' });
+
+        let user = await User.findOne({ googleId });
+
+        if (!user) {
+            // Check if email already exists (registered with password)
+            user = await User.findOne({ email });
+            if (user) {
+                // Link Google account to existing user
+                user.googleId = googleId;
+                if (avatar && !user.avatar) user.avatar = avatar;
+                await user.save();
+            } else {
+                // Create new user
+                user = await User.create({
+                    googleId,
+                    firstname,
+                    lastname,
+                    email,
+                    avatar: avatar || '',
+                    isVerified: true,
+                });
+            }
+        }
+
+        res.cookie('trailbliss_token', generateToken(user), cookieOptions);
+        res.json({
+            message: 'Google login successful',
+            data: { id: user._id, firstname: user.firstname, lastname: user.lastname, email: user.email, phone: user.phone, role: user.role }
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Google login failed', error: error.message });
+    }
+};
+
+module.exports = { SignUpUser, LoginUser, LogoutUser, GetProfile, UpdateProfile, GetAllUsers, DeleteUser, SendOTP, VerifyOTP, ResetPassword, GoogleCallback };

@@ -26,9 +26,12 @@ const userSchema = new mongoose.Schema({
     trim: true,
     match: [/^\+?[\d\s-()]+$/, 'Please provide a valid phone number']
   },
+  googleId: {
+    type: String,
+    default: null
+  },
   password: {
     type: String,
-    required: [true, 'Password is required'],
     minLength: [6, 'Password must be at least 6 characters']
   },
   role: {
@@ -72,7 +75,7 @@ const userSchema = new mongoose.Schema({
 
 // Encrypt password before saving
 userSchema.pre('save', async function() {
-  if (!this.isModified('password')) return;
+  if (!this.isModified('password') || !this.password) return;
   const salt = await bcrypt.genSalt(12);
   this.password = await bcrypt.hash(this.password, salt);
 });
