@@ -138,9 +138,7 @@ const bookingSchema = new mongoose.Schema({
     },
     dueAmount: {
       type: Number,
-      default: function() {
-        return this.pricing.finalAmount - this.payment.paidAmount;
-      }
+      default: 0
     }
   },
   status: {
@@ -207,28 +205,19 @@ const bookingSchema = new mongoose.Schema({
 });
 
 // Generate booking ID before saving
-bookingSchema.pre('save', async function(next) {
+bookingSchema.pre('save', async function() {
   if (this.isNew && !this.bookingId) {
     const count = await this.constructor.countDocuments();
     this.bookingId = `TB${String(count + 1).padStart(4, '0')}`;
   }
-  next();
-});
-
-// Validate travel dates
-bookingSchema.pre('save', function(next) {
   if (this.travelDetails?.startDate && this.travelDetails?.endDate) {
-    if (this.travelDetails.startDate >= this.travelDetails.endDate) {
-      return next(new Error('End date must be after start date'));
+    if (new Date(this.travelDetails.startDate) >= new Date(this.travelDetails.endDate)) {
+      throw new Error('End date must be after start date');
     }
   }
-  next();
-});
-
-// Calculate due amount
-bookingSchema.pre('save', function(next) {
-  this.payment.dueAmount = this.pricing.finalAmount - this.payment.paidAmount;
-  next();
+  if (this.pricing?.finalAmount != null && this.payment?.paidAmount != null) {
+    this.payment.dueAmount = this.pricing.finalAmount - this.payment.paidAmount;
+  }
 });
 
 // Indexing
