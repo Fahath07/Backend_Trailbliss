@@ -1,5 +1,14 @@
 const User = require('../Models/UserModel');
 const generateToken = require('../Utils/generateToken');
+const nodemailer = require('nodemailer');
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+});
+
+// In-memory OTP store: { email: { otp, expiresAt } }
+const otpStore = {};
 
 const cookieOptions = {
     httpOnly: true,
@@ -102,4 +111,77 @@ const DeleteUser = async (req, res) => {
     }
 };
 
-module.exports = { SignUpUser, LoginUser, LogoutUser, GetProfile, UpdateProfile, GetAllUsers, DeleteUser };
+const SendOTP = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ message: 'Email is required' });
+
+        const user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ message: 'No account found with this email' });
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        otpStore[email] = { otp, expiresAt: Date.now() + 10 * 60 * 1000 }; // 10 min expiry
+
+        await transporter.sendMail({
+            from: `"TrailBliss" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: 'Your TrailBliss Password Reset OTP',
+            html: `
+                <div style="font-family:Poppins,sans-serif;max-width:480px;margin:auto;padding:32px;border-radius:12px;border:1px solid #e5e7eb">
+                    <h2 style="color:#1a1a2e">🌍 TrailBliss</h2>
+                    <p>Use the OTP below to reset your password. It expires in <strong>10 minutes</strong>.</p>
+                    <div style="font-size:36px;font-weight:700;letter-spacing:8px;color:#4f46e5;text-align:center;padding:24px 0">${otp}</div>
+                    <p style="color:#6b7280;font-size:13px">If you didn't request this, you can safely ignore this email.</p>
+                </div>
+            `,
+        });
+
+        res.json({ message: 'OTP sent to your email' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error sending OTP', error: error.message });
+    }
+};
+
+const VerifyOTP = async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+        const record = otpStore[email];
+
+        if (!record) return res.status(400).json({ message: 'OTP not found. Please request a new one.' });
+        if (Date.now() > record.expiresAt) {
+            delete otpStore[email];
+            return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
+        }
+        if (record.otp !== otp) return res.status(400).json({ message: 'Invalid OTP' });
+
+        res.json({ message: 'OTP verified' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error verifying OTP', error: error.message });
+    }
+};
+
+const ResetPassword = async (req, res) => {
+    try {
+        const { email, otp, password } = req.body;
+        const record = otpStore[email];
+
+        if (!record) return res.status(400).json({ message: 'OTP not found. Please request a new one.' });
+        if (Date.now() > record.expiresAt) {
+            delete otpStore[email];
+            return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
+        }
+        if (record.otp !== otp) return res.status(400).json({ message: 'Invalid OTP' });
+        if (!password || password.length < 8) return res.status(400).json({ message: 'Password must be at least 8 characters' });
+
+        const user = await User.findOne({ email });
+        user.password = password;
+        await user.save();
+
+        delete otpStore[email];
+        res.json({ message: 'Password reset successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error resetting password', error: error.message });
+    }
+};
+
+module.exports = { SignUpUser, LoginUser, LogoutUser, GetProfile, UpdateProfile, GetAllUsers, DeleteUser, SendOTP, VerifyOTP, ResetPassword };

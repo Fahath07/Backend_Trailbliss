@@ -94,20 +94,18 @@ const enquirySchema = new mongoose.Schema({
 });
 
 // Generate enquiry ID before saving
-enquirySchema.pre('save', async function(next) {
+enquirySchema.pre('save', async function() {
   if (this.isNew && !this.enquiryId) {
     const count = await this.constructor.countDocuments();
     this.enquiryId = `EQ${String(count + 1).padStart(4, '0')}`;
   }
-  next();
 });
 
 // Auto-set resolved date when status changes to resolved/closed
-enquirySchema.pre('save', function(next) {
+enquirySchema.pre('save', function() {
   if (this.isModified('status') && ['Resolved', 'Closed'].includes(this.status) && !this.resolvedAt) {
     this.resolvedAt = new Date();
   }
-  next();
 });
 
 // Indexing

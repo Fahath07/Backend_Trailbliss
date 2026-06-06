@@ -17,6 +17,7 @@ router.post('/', createEnquiry);
 
 // Admin — must be before /:id to avoid param conflict
 router.get('/all', protect, admin, getAllEnquiries);
+router.get('/admin/all', protect, admin, getAllEnquiries);
 router.get('/admin/stats', protect, admin, getEnquiryStats);
 
 // Protected

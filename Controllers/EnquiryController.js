@@ -1,35 +1,48 @@
 const Enquiry = require('../Models/EnquiryModel');
+const nodemailer = require('nodemailer');
 
-// @desc    Create new enquiry
-// @route   POST /api/enquiries
-// @access  Public
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+});
+
+const ADMIN_EMAIL = 'fahathalsalam07@gmail.com';
+
 const createEnquiry = async (req, res) => {
   try {
     const { name, email, phone, subject, message, category = 'General' } = req.body;
 
-    const enquiry = new Enquiry({
-      name,
-      email,
-      phone,
-      subject,
-      message,
-      category,
-      source: 'Website'
-    });
-
+    const enquiry = new Enquiry({ name, email, phone, subject, message, category, source: 'Website' });
     await enquiry.save();
+
+    // Send email notification to admin
+    transporter.sendMail({
+      from: `"TrailBliss" <${process.env.EMAIL_USER}>`,
+      to: ADMIN_EMAIL,
+      subject: `New Enquiry: ${subject}`,
+      html: `
+        <div style="font-family:Poppins,sans-serif;max-width:520px;margin:auto;padding:32px;border-radius:12px;border:1px solid #e5e7eb">
+          <h2 style="color:#1a1a2e">🌍 New Contact Enquiry</h2>
+          <table style="width:100%;border-collapse:collapse;margin-top:16px">
+            <tr><td style="padding:8px 0;color:#6b7280;width:120px">Name</td><td><strong>${name}</strong></td></tr>
+            <tr><td style="padding:8px 0;color:#6b7280">Email</td><td>${email}</td></tr>
+            <tr><td style="padding:8px 0;color:#6b7280">Phone</td><td>${phone || '—'}</td></tr>
+            <tr><td style="padding:8px 0;color:#6b7280">Subject</td><td>${subject}</td></tr>
+          </table>
+          <div style="margin-top:16px;padding:16px;background:#f9fafb;border-radius:8px">
+            <p style="color:#6b7280;margin:0 0 8px">Message:</p>
+            <p style="margin:0">${message}</p>
+          </div>
+          <p style="margin-top:16px;color:#6b7280;font-size:13px">Enquiry ID: ${enquiry.enquiryId}</p>
+        </div>
+      `,
+    }).catch(() => {}); // fire-and-forget, don't fail the request if email fails
 
     res.status(201).json({
       message: 'Enquiry submitted successfully',
-      enquiry: {
-        enquiryId: enquiry.enquiryId,
-        subject: enquiry.subject,
-        status: enquiry.status,
-        createdAt: enquiry.createdAt
-      }
+      enquiry: { enquiryId: enquiry.enquiryId, subject: enquiry.subject, status: enquiry.status, createdAt: enquiry.createdAt }
     });
   } catch (error) {
-    console.error('Create enquiry error:', error);
     res.status(400).json({ message: error.message });
   }
 };
@@ -153,74 +166,19 @@ const addResponse = async (req, res) => {
   }
 };
 
-// @desc    Get all enquiries (Admin)
-// @route   GET /api/enquiries/admin/all
-// @access  Private/Admin
 const getAllEnquiries = async (req, res) => {
   try {
-    const {
-      page = 1,
-      limit = 10,
-      status = '',
-      category = '',
-      priority = '',
-      assignedTo = '',
-      search = ''
-    } = req.query;
-
-    // Build query
-    const query = {};
-    if (status) query.status = status;
-    if (category) query.category = category;
-    if (priority) query.priority = priority;
-    if (assignedTo) query.assignedTo = assignedTo;
-    if (search) {
-      query.$or = [
-        { enquiryId: { $regex: search, $options: 'i' } },
+    const { search = '' } = req.query;
+    const query = search ? {
+      $or: [
         { name: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } },
-        { subject: { $regex: search, $options: 'i' } }
-      ];
-    }
-
-    const enquiries = await Enquiry.find(query)
-      .sort({ priority: 1, createdAt: -1 }) // High priority first, then newest
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .populate('assignedTo', 'firstName lastName')
-      .select('-responses'); // Exclude responses for list view
-
-    const total = await Enquiry.countDocuments(query);
-
-    // Get summary stats
-    const stats = await Enquiry.aggregate([
-      {
-        $group: {
-          _id: {
-            status: '$status',
-            priority: '$priority'
-          },
-          count: { $sum: 1 }
-        }
-      }
-    ]);
-
-    // Get unassigned count
-    const unassignedCount = await Enquiry.countDocuments({
-      assignedTo: { $exists: false },
-      status: { $in: ['New', 'In Progress'] }
-    });
-
-    res.json({
-      enquiries,
-      currentPage: parseInt(page),
-      totalPages: Math.ceil(total / limit),
-      totalEnquiries: total,
-      stats,
-      unassignedCount
-    });
+        { subject: { $regex: search, $options: 'i' } },
+      ]
+    } : {};
+    const enquiries = await Enquiry.find(query).sort({ createdAt: -1 });
+    res.json({ data: enquiries });
   } catch (error) {
-    console.error('Get all enquiries error:', error);
     res.status(500).json({ message: 'Failed to fetch enquiries' });
   }
 };
