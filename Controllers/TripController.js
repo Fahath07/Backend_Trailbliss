@@ -31,7 +31,7 @@ const CreateTrip = async (req, res) => {
         const trip = await Trip.create(req.body);
         res.status(201).json({ message: 'Trip created successfully', data: trip });
     } catch (error) {
-        res.status(500).json({ message: 'Error creating trip', error: error.message });
+        res.status(500).json({ message: 'Error creating trip', error: error.message, details: error.errors });
     }
 };
 
