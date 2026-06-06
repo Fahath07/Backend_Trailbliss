@@ -1,16 +1,8 @@
 const User = require('../Models/UserModel');
 const generateToken = require('../Utils/generateToken');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-function createTransporter() {
-    return nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 587,
-        secure: false,
-        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-        tls: { rejectUnauthorized: false },
-    });
-}
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // In-memory OTP store: { email: { otp, expiresAt } }
 const otpStore = {};
@@ -127,12 +119,12 @@ const SendOTP = async (req, res) => {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         otpStore[email] = { otp, expiresAt: Date.now() + 10 * 60 * 1000 }; // 10 min expiry
 
-        await createTransporter().sendMail({
-            from: `"TrailBliss" <${process.env.EMAIL_USER}>`,
+        await resend.emails.send({
+            from: 'TrailBliss <onboarding@resend.dev>',
             to: email,
             subject: 'Your TrailBliss Password Reset OTP',
             html: `
-                <div style="font-family:Poppins,sans-serif;max-width:480px;margin:auto;padding:32px;border-radius:12px;border:1px solid #e5e7eb">
+                <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;border-radius:12px;border:1px solid #e5e7eb">
                     <h2 style="color:#1a1a2e">🌍 TrailBliss</h2>
                     <p>Use the OTP below to reset your password. It expires in <strong>10 minutes</strong>.</p>
                     <div style="font-size:36px;font-weight:700;letter-spacing:8px;color:#4f46e5;text-align:center;padding:24px 0">${otp}</div>

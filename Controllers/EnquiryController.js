@@ -1,16 +1,7 @@
 const Enquiry = require('../Models/EnquiryModel');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-function createTransporter() {
-  return nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-    tls: { rejectUnauthorized: false },
-  });
-}
-
+const resend = new Resend(process.env.RESEND_API_KEY);
 const ADMIN_EMAIL = 'fahathalsalam07@gmail.com';
 
 const createEnquiry = async (req, res) => {
@@ -24,12 +15,12 @@ const createEnquiry = async (req, res) => {
     await enquiry.save();
 
     // Send email notification to admin
-    createTransporter().sendMail({
-      from: `"TrailBliss" <${process.env.EMAIL_USER}>`,
+    resend.emails.send({
+      from: 'TrailBliss <onboarding@resend.dev>',
       to: ADMIN_EMAIL,
       subject: `New Enquiry: ${subject}`,
       html: `
-        <div style="font-family:Poppins,sans-serif;max-width:520px;margin:auto;padding:32px;border-radius:12px;border:1px solid #e5e7eb">
+        <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:32px;border-radius:12px;border:1px solid #e5e7eb">
           <h2 style="color:#1a1a2e">🌍 New Contact Enquiry</h2>
           <table style="width:100%;border-collapse:collapse;margin-top:16px">
             <tr><td style="padding:8px 0;color:#6b7280;width:120px">Name</td><td><strong>${name}</strong></td></tr>
