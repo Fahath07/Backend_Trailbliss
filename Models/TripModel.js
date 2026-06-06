@@ -177,7 +177,7 @@ const packageSchema = new mongoose.Schema({
 });
 
 // Generate slug before saving
-packageSchema.pre('save', function(next) {
+packageSchema.pre('save', async function() {
   if (this.isModified('title')) {
     this.slug = this.title
       .toLowerCase()
@@ -188,7 +188,6 @@ packageSchema.pre('save', function(next) {
   if (this.duration?.days && !this.duration.nights) {
     this.duration.nights = Math.max(0, this.duration.days - 1);
   }
-  next();
 });
 
 // Calculate final price with discount
