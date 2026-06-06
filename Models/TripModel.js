@@ -24,7 +24,7 @@ const packageSchema = new mongoose.Schema({
     },
     state: {
       type: String,
-      required: [true, 'State is required']
+      default: ''
     },
     country: {
       type: String,
