@@ -1,10 +1,15 @@
 const Enquiry = require('../Models/EnquiryModel');
 const nodemailer = require('nodemailer');
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-});
+function createTransporter() {
+  return nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+    tls: { rejectUnauthorized: false },
+  });
+}
 
 const ADMIN_EMAIL = 'fahathalsalam07@gmail.com';
 
@@ -19,7 +24,7 @@ const createEnquiry = async (req, res) => {
     await enquiry.save();
 
     // Send email notification to admin
-    transporter.sendMail({
+    createTransporter().sendMail({
       from: `"TrailBliss" <${process.env.EMAIL_USER}>`,
       to: ADMIN_EMAIL,
       subject: `New Enquiry: ${subject}`,

@@ -2,10 +2,15 @@ const User = require('../Models/UserModel');
 const generateToken = require('../Utils/generateToken');
 const nodemailer = require('nodemailer');
 
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-});
+function createTransporter() {
+    return nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+        tls: { rejectUnauthorized: false },
+    });
+}
 
 // In-memory OTP store: { email: { otp, expiresAt } }
 const otpStore = {};
@@ -122,7 +127,7 @@ const SendOTP = async (req, res) => {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         otpStore[email] = { otp, expiresAt: Date.now() + 10 * 60 * 1000 }; // 10 min expiry
 
-        await transporter.sendMail({
+        await createTransporter().sendMail({
             from: `"TrailBliss" <${process.env.EMAIL_USER}>`,
             to: email,
             subject: 'Your TrailBliss Password Reset OTP',
