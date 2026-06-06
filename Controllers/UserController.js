@@ -1,6 +1,13 @@
 const User = require('../Models/UserModel');
 const generateToken = require('../Utils/generateToken');
 
+const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+};
+
 const SignUpUser = async (req, res) => {
     try {
         const { firstname, lastname, email, phone, password, role } = req.body;
@@ -11,12 +18,12 @@ const SignUpUser = async (req, res) => {
         if (await User.findOne({ email }))
             return res.status(400).json({ message: 'Email already registered' });
 
-        // UserModel pre-save hook handles password hashing — do NOT hash here
         const user = await User.create({ firstname, lastname, email, phone, password, role: role || 'user' });
+
+        res.cookie('trailbliss_token', generateToken(user), cookieOptions);
 
         res.status(201).json({
             message: 'User registered successfully',
-            token: generateToken(user),
             data: { id: user._id, firstname: user.firstname, lastname: user.lastname, email: user.email, phone: user.phone, role: user.role }
         });
     } catch (error) {
@@ -33,14 +40,24 @@ const LoginUser = async (req, res) => {
         const isMatch = await user.comparePassword(password);
         if (!isMatch) return res.status(401).json({ message: 'Invalid email or password' });
 
+        res.cookie('trailbliss_token', generateToken(user), cookieOptions);
+
         res.json({
             message: 'Login successful',
-            token: generateToken(user),
             data: { id: user._id, firstname: user.firstname, lastname: user.lastname, email: user.email, phone: user.phone, role: user.role }
         });
     } catch (error) {
         res.status(500).json({ message: 'Error logging in', error: error.message });
     }
+};
+
+const LogoutUser = (req, res) => {
+    res.clearCookie('trailbliss_token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    });
+    res.json({ message: 'Logged out successfully' });
 };
 
 const GetProfile = async (req, res) => {
@@ -85,4 +102,4 @@ const DeleteUser = async (req, res) => {
     }
 };
 
-module.exports = { SignUpUser, LoginUser, GetProfile, UpdateProfile, GetAllUsers, DeleteUser };
+module.exports = { SignUpUser, LoginUser, LogoutUser, GetProfile, UpdateProfile, GetAllUsers, DeleteUser };
