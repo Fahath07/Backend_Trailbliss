@@ -37,11 +37,13 @@ const CreateTrip = async (req, res) => {
 
 const UpdateTrip = async (req, res) => {
     try {
-        const trip = await Trip.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const trip = await Trip.findById(req.params.id);
         if (!trip) return res.status(404).json({ message: 'Trip not found' });
+        Object.assign(trip, req.body);
+        await trip.save();
         res.json({ message: 'Trip updated', data: trip });
     } catch (error) {
-        res.status(500).json({ message: 'Error updating trip', error: error.message });
+        res.status(500).json({ message: 'Error updating trip', error: error.message, details: error.errors });
     }
 };
 

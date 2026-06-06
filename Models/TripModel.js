@@ -47,10 +47,7 @@ const packageSchema = new mongoose.Schema({
       min: [1, 'Duration must be at least 1 day']
     },
     nights: {
-      type: Number,
-      default: function() {
-        return Math.max(0, this.duration.days - 1);
-      }
+      type: Number
     }
   },
   pricing: {
@@ -186,7 +183,10 @@ packageSchema.pre('save', function(next) {
       .toLowerCase()
       .replace(/[^a-z0-9]/g, '-')
       .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
+      .replace(/^-|-$/g, '') + '-' + Date.now();
+  }
+  if (this.duration?.days && !this.duration.nights) {
+    this.duration.nights = Math.max(0, this.duration.days - 1);
   }
   next();
 });
