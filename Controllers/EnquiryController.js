@@ -12,7 +12,10 @@ const createEnquiry = async (req, res) => {
   try {
     const { name, email, phone, subject, message, category = 'General' } = req.body;
 
-    const enquiry = new Enquiry({ name, email, phone, subject, message, category, source: 'Website' });
+    const count = await Enquiry.countDocuments();
+    const enquiryId = `EQ${String(count + 1).padStart(4, '0')}`;
+
+    const enquiry = new Enquiry({ enquiryId, name, email, phone, subject, message, category, source: 'Website' });
     await enquiry.save();
 
     // Send email notification to admin

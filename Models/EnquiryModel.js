@@ -4,7 +4,7 @@ const enquirySchema = new mongoose.Schema({
   enquiryId: {
     type: String,
     unique: true,
-    required: true
+    sparse: true,
   },
   name: {
     type: String,
