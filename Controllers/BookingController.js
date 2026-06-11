@@ -8,17 +8,13 @@ const CreateBooking = async (req, res) => {
         const trip = await Trip.findById(packageId);
         if (!trip) return res.status(404).json({ message: 'Trip not found' });
         if (trip.availability?.isActive === false) return res.status(400).json({ message: 'Trip is not available' });
-
         const numTravelers = travelerDetails?.numberOfTravelers || 1;
         const basePrice = trip.pricing?.basePrice || 0;
         const totalAmount = basePrice * numTravelers;
-
-        // Calculate end date from start date + duration
         const startDate = new Date(travelDetails?.startDate || Date.now());
         const durationDays = trip.duration?.days || 1;
         const endDate = new Date(startDate);
         endDate.setDate(endDate.getDate() + durationDays);
-
         const booking = await Booking.create({
             user: req.user.id,
             package: packageId,
@@ -50,7 +46,6 @@ const CreateBooking = async (req, res) => {
         res.status(500).json({ message: 'Error creating booking', error: error.message, details: error.errors });
     }
 };
-
 const GetMyBookings = async (req, res) => {
     try {
         const bookings = await Booking.find({ user: req.user.id })
