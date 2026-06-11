@@ -15,6 +15,8 @@ app.use(cors({
         /\.vercel\.app$/,
     ],
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    exposedHeaders: ['set-cookie'],
 }));
 
 app.get('/', (req, res) => res.json({ status: 'ok', message: 'TrailBliss API is running!' }));
